@@ -1,5 +1,5 @@
 /**
- * PASSKEY – Password Generator
+ * Passwort-Generator – Password Generator
  * app.js – Vollständige Logik inkl. Generator, Verlauf, E-Mail Manager
  */
 
@@ -58,6 +58,7 @@ const dom = {
   segSpecial: document.getElementById('seg-special'),
 
   totalSum:     document.getElementById('total-sum'),
+  totalTarget:  document.getElementById('total-target'),
   totalWarning: document.getElementById('total-warning'),
   btnEqual:     document.getElementById('btn-equal'),
 
@@ -90,7 +91,8 @@ let state = {
   length: 8,
   mode: 'random', // 'random' | 'pronounceable'
   avoidSimilar: false,
-  distribution: { upper: 25, lower: 25, numbers: 25, special: 25 },
+  distribution: { upper: 2, lower: 2, numbers: 2, special: 2 },
+  recencyHistory: ['upper', 'lower', 'numbers', 'special'],
   currentPassword: '',
   history: [],
   emails: []
@@ -119,7 +121,22 @@ function loadFromStorage() {
       if (s.length)        state.length = s.length;
       if (s.mode)          state.mode = s.mode;
       if (s.avoidSimilar !== undefined) state.avoidSimilar = s.avoidSimilar;
-      if (s.distribution)  state.distribution = { ...state.distribution, ...s.distribution };
+      if (s.distribution) {
+        const sum = s.distribution.upper + s.distribution.lower + s.distribution.numbers + s.distribution.special;
+        if (sum === state.length) {
+          state.distribution = s.distribution;
+        } else {
+          // Gleichmäßig für Standardlänge verteilen
+          const base = Math.floor(state.length / 4);
+          const rest = state.length - base * 4;
+          state.distribution = {
+            upper: base + rest,
+            lower: base,
+            numbers: base,
+            special: base
+          };
+        }
+      }
     }
   } catch(e) {}
 
@@ -165,7 +182,8 @@ function saveSettings() {
 function bindEvents() {
   // Länge
   dom.lengthSelect.addEventListener('change', () => {
-    state.length = parseInt(dom.lengthSelect.value, 10);
+    const val = parseInt(dom.lengthSelect.value, 10);
+    adjustToNewLength(val);
     saveSettings();
   });
 
@@ -207,7 +225,7 @@ function bindEvents() {
     valEl.addEventListener('change', () => {
       let newVal = parseInt(valEl.value, 10);
       if (isNaN(newVal)) newVal = 0;
-      newVal = Math.max(0, Math.min(100, newVal));
+      newVal = Math.max(0, Math.min(state.length, newVal));
       handleDistributionChange(type, newVal);
     });
   });
@@ -237,8 +255,16 @@ function setSliderValues(dist, save = true) {
   const types = ['upper','lower','numbers','special'];
   types.forEach(type => {
     const v = dist[type] ?? 0;
-    dom[`range${capitalize(type)}`].value = v;
-    dom[`val${capitalize(type)}`].value = v;
+    const rangeEl = dom[`range${capitalize(type)}`];
+    const valEl   = dom[`val${capitalize(type)}`];
+    
+    rangeEl.min = 0;
+    rangeEl.max = state.length;
+    rangeEl.value = v;
+    
+    valEl.min = 0;
+    valEl.max = state.length;
+    valEl.value = v;
   });
   updateTotalBar();
   if (save) {
@@ -250,60 +276,90 @@ function setSliderValues(dist, save = true) {
 }
 
 function handleDistributionChange(changedType, newVal) {
-  const types = ['upper','lower','numbers','special'];
-  const otherTypes = types.filter(t => t !== changedType);
-
-  // Klemme den neuen Wert
-  newVal = Math.max(0, Math.min(100, newVal));
-
-  // Aktuelle Summe der anderen
-  const otherSum = otherTypes.reduce((s, t) => s + state.distribution[t], 0);
-  const remaining = 100 - newVal;
-
-  let newDist = { ...state.distribution, [changedType]: newVal };
-
-  if (otherSum === 0) {
-    // Alle anderen sind 0: gleichmäßig verteilen
-    const base = Math.floor(remaining / otherTypes.length);
-    const remainder = remaining - base * otherTypes.length;
-    otherTypes.forEach((t, i) => {
-      newDist[t] = base + (i === 0 ? remainder : 0);
-    });
-  } else {
-    // Proportional skalieren
-    const scale = remaining / otherSum;
-    let tempSum = 0;
-    otherTypes.forEach((t, idx) => {
-      if (idx < otherTypes.length - 1) {
-        newDist[t] = Math.max(0, Math.round(state.distribution[t] * scale));
-        tempSum += newDist[t];
-      } else {
-        newDist[t] = Math.max(0, remaining - tempSum);
-      }
-    });
+  newVal = Math.max(0, Math.min(state.length, newVal));
+  const oldVal = state.distribution[changedType];
+  const diff = newVal - oldVal;
+  
+  if (diff === 0) return;
+  
+  state.distribution[changedType] = newVal;
+  
+  // Aktualisiere recencyHistory: verschiebe changedType an die Spitze
+  state.recencyHistory = [changedType, ...state.recencyHistory.filter(t => t !== changedType)];
+  
+  // Liste der anderen Typen, sortiert nach dem am längsten nicht angefassten (reverse recencyHistory)
+  const otherTypes = [...state.recencyHistory].reverse().filter(t => t !== changedType);
+  let remainingCompensate = -diff;
+  
+  for (const t of otherTypes) {
+    if (remainingCompensate === 0) break;
+    const val = state.distribution[t];
+    
+    if (remainingCompensate < 0) {
+      // Wir müssen andere Werte verringern
+      const decreaseBy = Math.min(val, -remainingCompensate);
+      state.distribution[t] -= decreaseBy;
+      remainingCompensate += decreaseBy;
+    } else {
+      // Wir müssen andere Werte erhöhen (die Summe darf state.length nicht überschreiten)
+      const maxPossible = state.length - Object.values(state.distribution).reduce((a, b) => a + b, 0) + state.distribution[t];
+      const increaseBy = Math.min(maxPossible - val, remainingCompensate);
+      state.distribution[t] += increaseBy;
+      remainingCompensate -= increaseBy;
+    }
   }
-
-  // Exakte Summe sicherstellen
-  const total = types.reduce((s, t) => s + newDist[t], 0);
-  if (total !== 100) {
-    const diff = 100 - total;
-    // Erste andere Typ die nicht 0 sind
-    const adjustType = otherTypes.find(t => newDist[t] > 0 && newDist[t] + diff >= 0) || changedType;
-    newDist[adjustType] = Math.max(0, newDist[adjustType] + diff);
+  
+  // Mathematische Absicherung: Falls Rest verbleibt, passe den Auslöser selbst an
+  if (remainingCompensate !== 0) {
+    state.distribution[changedType] += remainingCompensate;
   }
+  
+  setSliderValues(state.distribution);
+}
 
-  setSliderValues(newDist);
+function adjustToNewLength(newLength) {
+  const oldLength = state.length;
+  state.length = newLength;
+  
+  let diff = newLength - oldLength;
+  if (diff === 0) return;
+  
+  // Passe die am längsten nicht berührten Slider zuerst an
+  const types = [...state.recencyHistory].reverse();
+  for (const t of types) {
+    if (diff === 0) break;
+    const val = state.distribution[t];
+    if (diff > 0) {
+      state.distribution[t] += diff;
+      diff = 0;
+    } else {
+      const decreaseBy = Math.min(val, -diff);
+      state.distribution[t] -= decreaseBy;
+      diff += decreaseBy;
+    }
+  }
+  
+  setSliderValues(state.distribution);
 }
 
 function distributeEqually() {
-  const base = Math.floor(100 / 4);
-  const rest = 100 - base * 4;
-  setSliderValues({
-    upper:   base + rest,
-    lower:   base,
+  const base = Math.floor(state.length / 4);
+  const rest = state.length - base * 4;
+  
+  const nextDist = {
+    upper: base,
+    lower: base,
     numbers: base,
     special: base
-  });
+  };
+  
+  // Verteile den Rest auf die am kürzesten bearbeiteten Slider (historisch)
+  const keys = ['upper', 'lower', 'numbers', 'special'];
+  for (let i = 0; i < rest; i++) {
+    nextDist[keys[i]]++;
+  }
+  
+  setSliderValues(nextDist);
 }
 
 function updateTotalBar() {
@@ -311,12 +367,18 @@ function updateTotalBar() {
   const total = d.upper + d.lower + d.numbers + d.special;
 
   dom.totalSum.textContent = total;
-  dom.totalWarning.textContent = total !== 100 ? `(Ziel: 100%)` : '';
+  dom.totalTarget.textContent = state.length;
+  dom.totalWarning.textContent = total !== state.length ? `(Ziel: ${state.length})` : '';
 
-  dom.segUpper.style.width   = `${d.upper}%`;
-  dom.segLower.style.width   = `${d.lower}%`;
-  dom.segNumbers.style.width = `${d.numbers}%`;
-  dom.segSpecial.style.width = `${d.special}%`;
+  const pctUpper = state.length > 0 ? (d.upper / state.length) * 100 : 0;
+  const pctLower = state.length > 0 ? (d.lower / state.length) * 100 : 0;
+  const pctNumbers = state.length > 0 ? (d.numbers / state.length) * 100 : 0;
+  const pctSpecial = state.length > 0 ? (d.special / state.length) * 100 : 0;
+
+  dom.segUpper.style.width   = `${pctUpper}%`;
+  dom.segLower.style.width   = `${pctLower}%`;
+  dom.segNumbers.style.width = `${pctNumbers}%`;
+  dom.segSpecial.style.width = `${pctSpecial}%`;
 }
 
 /* =============================================
@@ -391,8 +453,8 @@ function generatePassword() {
     return;
   }
 
-  // Zeichen pro Typ berechnen (proportional)
-  const counts = computeCounts(length, dist, total);
+  // Nutze die absolute Verteilung direkt
+  const counts = state.distribution;
 
   // Zeichensätze filtern falls avoidSimilar aktiv ist
   let charUpper = CHARS.upper;
@@ -479,25 +541,7 @@ function generatePassword() {
   dom.applePwInput.value = password;
 }
 
-/**
- * Anzahl der Zeichen pro Typ berechnen
- */
-function computeCounts(length, dist, total) {
-  const types = ['upper','lower','numbers','special'];
-  let counts = {};
-  let assigned = 0;
 
-  types.forEach((t, idx) => {
-    if (idx < types.length - 1) {
-      counts[t] = Math.round((dist[t] / total) * length);
-      assigned += counts[t];
-    } else {
-      counts[t] = Math.max(0, length - assigned);
-    }
-  });
-
-  return counts;
-}
 
 /* =============================================
    ANZEIGE

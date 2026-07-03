@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1, minimum-scale=1, viewport-fit=cover" />
-  <title>PASSKEY – Sicherer Passwort Generator</title>
+  <title>Passwort-Generator – Sicherer Passwort Generator</title>
   <meta name="description" content="Generiere sichere, zufällige Passwörter mit vollständig anpassbaren Einstellungen. Glassmorphism Design, Apple-kompatibel." />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="PASSKEY" />
-  <link rel="apple-touch-icon" href="passwort.jpeg" />
-  <link rel="icon" type="image/jpeg" href="passwort.jpeg" />
+  <meta name="apple-mobile-web-app-title" content="Passwort-Gen" />
+  <link rel="apple-touch-icon" href="passwort.png" />
+  <link rel="icon" type="image/png" href="passwort.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;900&display=swap" rel="stylesheet" />
@@ -31,9 +31,8 @@
 
   <div class="bg-aura"></div>
 
-  <div class="settings-overlay" id="settings-overlay"></div>
-
   <div class="app-wrapper">
+    <div class="settings-overlay" id="settings-overlay"></div>
     <!-- HEADER -->
     <header class="app-header">
       <div class="header-icon">
@@ -42,8 +41,8 @@
           <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
         </svg>
       </div>
-      <h1 class="header-title">PASSKEY</h1>
-      <p class="header-sub">SECURE PASSWORD GENERATOR</p>
+      <h1 class="header-title">Passwort-Generator</h1>
+      <p class="header-sub">SICHERER PASSWORT GENERATOR</p>
       
       <!-- Schnell-Generierung (nur Mobile) -->
       <button class="btn-header-gen" id="btn-header-gen" aria-label="Passwort generieren">
@@ -136,40 +135,40 @@
               <div class="slider-info">
                 <span class="slider-dot" style="background: #818cf8;"></span>
                 <span class="slider-name">GROSSBUCHST.</span>
-                <input type="number" id="val-upper" class="slider-num" min="0" max="100" value="25" aria-label="Anteil Großbuchstaben" />
-                <span class="slider-pct">%</span>
+                <input type="number" id="val-upper" class="slider-num" min="0" max="8" value="2" aria-label="Anzahl Großbuchstaben" />
+                <span class="slider-pct">Anz.</span>
               </div>
-              <input type="range" id="range-upper" class="glass-slider" min="0" max="100" value="25" aria-label="Großbuchstaben Anteil" />
+              <input type="range" id="range-upper" class="glass-slider" min="0" max="8" value="2" aria-label="Großbuchstaben Anzahl" />
             </div>
 
             <div class="slider-row" id="row-lower">
               <div class="slider-info">
                 <span class="slider-dot" style="background: #38bdf8;"></span>
                 <span class="slider-name">KLEINBUCHST.</span>
-                <input type="number" id="val-lower" class="slider-num" min="0" max="100" value="25" aria-label="Anteil Kleinbuchstaben" />
-                <span class="slider-pct">%</span>
+                <input type="number" id="val-lower" class="slider-num" min="0" max="8" value="2" aria-label="Anzahl Kleinbuchstaben" />
+                <span class="slider-pct">Anz.</span>
               </div>
-              <input type="range" id="range-lower" class="glass-slider" min="0" max="100" value="25" aria-label="Kleinbuchstaben Anteil" />
+              <input type="range" id="range-lower" class="glass-slider" min="0" max="8" value="2" aria-label="Kleinbuchstaben Anzahl" />
             </div>
 
             <div class="slider-row" id="row-numbers">
               <div class="slider-info">
                 <span class="slider-dot" style="background: #34d399;"></span>
                 <span class="slider-name">ZAHLEN</span>
-                <input type="number" id="val-numbers" class="slider-num" min="0" max="100" value="25" aria-label="Anteil Zahlen" />
-                <span class="slider-pct">%</span>
+                <input type="number" id="val-numbers" class="slider-num" min="0" max="8" value="2" aria-label="Anzahl Zahlen" />
+                <span class="slider-pct">Anz.</span>
               </div>
-              <input type="range" id="range-numbers" class="glass-slider" min="0" max="100" value="25" aria-label="Zahlen Anteil" />
+              <input type="range" id="range-numbers" class="glass-slider" min="0" max="8" value="2" aria-label="Zahlen Anzahl" />
             </div>
 
             <div class="slider-row" id="row-special">
               <div class="slider-info">
                 <span class="slider-dot" style="background: #f472b6;"></span>
                 <span class="slider-name">SONDERZEICHEN</span>
-                <input type="number" id="val-special" class="slider-num" min="0" max="100" value="25" aria-label="Anteil Sonderzeichen" />
-                <span class="slider-pct">%</span>
+                <input type="number" id="val-special" class="slider-num" min="0" max="8" value="2" aria-label="Anzahl Sonderzeichen" />
+                <span class="slider-pct">Anz.</span>
               </div>
-              <input type="range" id="range-special" class="glass-slider" min="0" max="100" value="25" aria-label="Sonderzeichen Anteil" />
+              <input type="range" id="range-special" class="glass-slider" min="0" max="8" value="2" aria-label="Sonderzeichen Anzahl" />
             </div>
 
           </div>
@@ -182,7 +181,7 @@
             <div class="total-segment seg-special" id="seg-special"></div>
           </div>
           <div class="total-label">
-            <span id="total-sum">100</span>% GESAMT
+            <span id="total-sum">8</span> / <span id="total-target">8</span> ZEICHEN
             <span class="total-warning" id="total-warning" aria-live="polite"></span>
           </div>
         </div>
@@ -242,7 +241,7 @@
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
             </svg>
-            Apple Passwort-Manager kompatibel
+            Lokale sichere Passwortgenerierung
           </p>
         </section>
 
