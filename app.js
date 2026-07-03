@@ -315,14 +315,33 @@ function pickChar(str) {
 }
 
 /**
- * Generiert eine zufällige Silbe (Konsonant + Vokal)
- * Gibt Großbuchstaben oder Kleinbuchstaben zurück je nach Typ
+ * Generiert ein vollständig aussprechbares Wort einer bestimmten Länge
+ * Wechselt Konsonanten und Vokale ab. Fügt manchmal Doppelkonsonanten ein (z. B. 'll', 'ss').
  */
-function randomSyllable(uppercase) {
-  const c = CONSONANTS[secureRandom(CONSONANTS.length)];
-  const v = VOWELS[secureRandom(VOWELS.length)];
-  const syl = c + v;
-  return uppercase ? syl.toUpperCase() : syl.toLowerCase();
+function generatePronounceableWord(wordLength) {
+  const singleConsonants = ['b','c','d','f','g','h','j','k','l','m','n','p','r','s','t','v','w','z'];
+  const doubleConsonants = ['ll','ss','tt','pp','rr','nn','mm','ff'];
+  const vowels = ['a','e','i','o','u'];
+  
+  let word = "";
+  let nextIsVowel = secureRandom(2) === 0;
+  
+  while (word.length < wordLength) {
+    const remaining = wordLength - word.length;
+    if (nextIsVowel) {
+      word += vowels[secureRandom(vowels.length)];
+      nextIsVowel = false;
+    } else {
+      // Wenn noch genug Platz ist, gibt es eine 20% Chance auf einen Doppelkonsonanten
+      if (remaining >= 2 && secureRandom(5) === 0) {
+        word += doubleConsonants[secureRandom(doubleConsonants.length)];
+      } else {
+        word += singleConsonants[secureRandom(singleConsonants.length)];
+      }
+      nextIsVowel = true;
+    }
+  }
+  return word;
 }
 
 /**
@@ -341,14 +360,50 @@ function generatePassword() {
   // Zeichen pro Typ berechnen (proportional)
   const counts = computeCounts(length, dist, total);
 
-  // Zeichenpool aufbauen
-  let chars = [];
+  let password = "";
 
   if (state.mode === 'pronounceable') {
-    // Aussprechbar: Buchstabenanteil als Silben erzeugen
-    chars = buildPronounceableChars(counts, length);
+    // Aussprechbarer Modus
+    const letterCount = counts.upper + counts.lower;
+    let word = "";
+    if (letterCount > 0) {
+      word = generatePronounceableWord(letterCount);
+      
+      // Groß-/Kleinschreibung passend zur Slider-Einstellung verteilen
+      let wordArr = word.split('');
+      let indices = Array.from({length: wordArr.length}, (_, i) => i);
+      for (let i = indices.length - 1; i > 0; i--) {
+        const j = secureRandom(i + 1);
+        [indices[i], indices[j]] = [indices[j], indices[i]];
+      }
+      for (let i = 0; i < counts.upper; i++) {
+        if (indices[i] !== undefined) {
+          wordArr[indices[i]] = wordArr[indices[i]].toUpperCase();
+        }
+      }
+      word = wordArr.join('');
+    }
+
+    // Zahlen und Sonderzeichen vorbereiten
+    let nonLetters = [];
+    for (let i = 0; i < counts.numbers; i++) nonLetters.push(pickChar(CHARS.numbers));
+    for (let i = 0; i < counts.special; i++) nonLetters.push(pickChar(CHARS.special));
+    
+    // Zahlen und Sonderzeichen untereinander mischen
+    for (let i = nonLetters.length - 1; i > 0; i--) {
+      const j = secureRandom(i + 1);
+      [nonLetters[i], nonLetters[j]] = [nonLetters[j], nonLetters[i]];
+    }
+
+    // Zahlen/Sonderzeichen zufällig aufteilen (vorne, hinten oder geteilt)
+    const splitIdx = secureRandom(nonLetters.length + 1);
+    const prefix = nonLetters.slice(0, splitIdx).join('');
+    const suffix = nonLetters.slice(splitIdx).join('');
+
+    password = prefix + word + suffix;
   } else {
-    // Zufällig: aus Zeichensätzen wählen
+    // Zufälliger Modus
+    let chars = [];
     for (let i = 0; i < counts.upper;   i++) chars.push(pickChar(CHARS.upper));
     for (let i = 0; i < counts.lower;   i++) chars.push(pickChar(CHARS.lower));
     for (let i = 0; i < counts.numbers; i++) chars.push(pickChar(CHARS.numbers));
@@ -357,15 +412,15 @@ function generatePassword() {
     // Länge exakt anpassen
     while (chars.length < length) chars.push(pickChar(CHARS.lower));
     chars = chars.slice(0, length);
+
+    // Zufällig durchmischen (Fisher-Yates)
+    for (let i = chars.length - 1; i > 0; i--) {
+      const j = secureRandom(i + 1);
+      [chars[i], chars[j]] = [chars[j], chars[i]];
+    }
+    password = chars.join('');
   }
 
-  // Zufällig durchmischen (Fisher-Yates mit crypto.getRandomValues)
-  for (let i = chars.length - 1; i > 0; i--) {
-    const j = secureRandom(i + 1);
-    [chars[i], chars[j]] = [chars[j], chars[i]];
-  }
-
-  const password = chars.join('');
   state.currentPassword = password;
 
   displayPassword(password);
@@ -394,37 +449,6 @@ function computeCounts(length, dist, total) {
   });
 
   return counts;
-}
-
-/**
- * Aussprechbaren Buchstabenanteil als Silben aufbauen
- */
-function buildPronounceableChars(counts, targetLength) {
-  const chars = [];
-
-  // Buchstaben als Silben generieren
-  const letterCount = counts.upper + counts.lower;
-  let generated = 0;
-
-  while (generated < letterCount) {
-    // Abwechselnd Groß und Klein, proportional
-    const useUpper = chars.filter(c => c >= 'A' && c <= 'Z').length < counts.upper;
-    const syllable = randomSyllable(useUpper && counts.upper > 0);
-
-    for (const ch of syllable) {
-      if (generated >= letterCount) break;
-      chars.push(ch);
-      generated++;
-    }
-  }
-
-  // Zahlen und Sonderzeichen ergänzen
-  for (let i = 0; i < counts.numbers; i++) chars.push(pickChar(CHARS.numbers));
-  for (let i = 0; i < counts.special; i++) chars.push(pickChar(CHARS.special));
-
-  // Auf Länge trimmen / auffüllen
-  while (chars.length < targetLength) chars.push(pickChar(CHARS.lower));
-  return chars.slice(0, targetLength);
 }
 
 /* =============================================
