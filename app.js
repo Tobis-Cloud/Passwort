@@ -866,8 +866,13 @@ function initSwipeGestures() {
           openMenu();
         }
       } else {
-        // Wischgeste von links nach rechts schließt das Menü wieder
-        if (deltaX > 0) {
+        // Wischgeste von links nach rechts: Darf nur auslösen, wenn sie am linken Rand des Drawer-Panels beginnt
+        // Das Panel ist auf der rechten Seite. Seine X-Position des linken Rands ist: ScreenWidth - PanelWidth.
+        const panelWidth = dom.settingsPanel.offsetWidth;
+        const panelLeftX = window.innerWidth - panelWidth;
+
+        // Wenn der Touchstart nahe dem linken Rand des Panels lag (z.B. innerhalb der ersten 40px ab Panel-Beginn)
+        if (deltaX > 0 && touchStartX >= panelLeftX && touchStartX <= (panelLeftX + 40)) {
           closeMenu();
         }
       }
