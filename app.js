@@ -843,40 +843,65 @@ function closeMenu() {
 function initSwipeGestures() {
   let touchStartX = 0;
   let touchStartY = 0;
+  let isSwipeGesture = false;
 
   document.addEventListener('touchstart', (e) => {
     const touch = e.touches[0];
     touchStartX = touch.clientX;
     touchStartY = touch.clientY;
+    isSwipeGesture = false;
   }, { passive: true });
+
+  // Verhindert das Standard-Scrollen oder die Zurück-Navigation des Browsers während des Wischens
+  document.addEventListener('touchmove', (e) => {
+    if (!touchStartX || !touchStartY) return;
+    const touch = e.touches[0];
+    const deltaX = touch.clientX - touchStartX;
+    const deltaY = touch.clientY - touchStartY;
+
+    if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 10) {
+      const isPanelOpen = dom.settingsPanel.classList.contains('open');
+      // Wenn das Panel offen ist oder wir vom rechten Rand wischen (zum Öffnen)
+      if (isPanelOpen || (window.innerWidth - touchStartX < 50)) {
+        isSwipeGesture = true;
+        if (e.cancelable) e.preventDefault();
+      }
+    }
+  }, { passive: false }); // Wichtig: false, um preventDefault() zu erlauben
 
   document.addEventListener('touchend', (e) => {
     const touch = e.changedTouches[0];
     const deltaX = touch.clientX - touchStartX;
     const deltaY = touch.clientY - touchStartY;
 
-    // Nur horizontale Wischgesten auswerten, wenn sie dominant sind (dx > dy) und eine Mindestdistanz haben (60px)
-    if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 60) {
+    // Mindestdistanz für Wischgeste (50px)
+    if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 50) {
       const isPanelOpen = dom.settingsPanel.classList.contains('open');
 
       if (!isPanelOpen) {
-        // Wischgeste von rechts nach links: Prüfe ob Startpunkt am rechten Rand lag (letzte 40px)
+        // Öffnen: Wischen von rechts nach links (Start im Bereich der rechten 50px des Bildschirms)
         const screenWidth = window.innerWidth;
-        if (deltaX < 0 && (screenWidth - touchStartX) < 40) {
+        if (deltaX < 0 && (screenWidth - touchStartX) < 50) {
           openMenu();
         }
       } else {
-        // Wischgeste von links nach rechts: Darf nur auslösen, wenn sie am linken Rand des Drawer-Panels beginnt
-        // Das Panel ist auf der rechten Seite. Seine X-Position des linken Rands ist: ScreenWidth - PanelWidth.
-        const panelWidth = dom.settingsPanel.offsetWidth;
+        // Schließen: Wischen von links nach rechts
+        // Das Panel ist auf der rechten Seite. Der linke Rand des Panels liegt bei: ScreenWidth - PanelWidth.
+        const panelWidth = dom.settingsPanel.offsetWidth || 320;
         const panelLeftX = window.innerWidth - panelWidth;
 
-        // Wenn der Touchstart nahe dem linken Rand des Panels lag (z.B. innerhalb der ersten 40px ab Panel-Beginn)
-        if (deltaX > 0 && touchStartX >= panelLeftX && touchStartX <= (panelLeftX + 40)) {
+        // Toleranzbereich: Wischgeste muss nahe der linken Kante des Panels starten (+/- 50px)
+        const startNearPanelLeft = Math.abs(touchStartX - panelLeftX) <= 50;
+
+        if (deltaX > 0 && startNearPanelLeft) {
           closeMenu();
         }
       }
     }
+
+    // Zurücksetzen
+    touchStartX = 0;
+    touchStartY = 0;
   }, { passive: true });
 }
 
