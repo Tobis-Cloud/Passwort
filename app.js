@@ -583,6 +583,15 @@ function addToHistory(pw) {
   renderHistory();
 }
 
+function deleteHistoryItem(idx) {
+  state.history.splice(idx, 1);
+  try {
+    localStorage.setItem(STORAGE_KEYS.history, JSON.stringify(state.history));
+  } catch(e) {}
+  renderHistory();
+  showToast('✓ Passwort gelöscht.');
+}
+
 function renderHistory() {
   const list = dom.historyList;
   list.innerHTML = '';
@@ -601,11 +610,16 @@ function renderHistory() {
       <span class="history-pw" title="${escapeHtml(entry.pw)}">${escapeHtml(entry.pw)}</span>
       <span class="history-time">${escapeHtml(entry.time)}</span>
       <button class="btn-history-copy" aria-label="Passwort ${idx + 1} kopieren">KOPIEREN</button>
+      <button class="btn-history-delete" aria-label="Passwort ${idx + 1} löschen">✕</button>
     `;
 
     item.querySelector('.btn-history-copy').addEventListener('click', async () => {
       const ok = await copyText(entry.pw);
       showToast(ok ? '✓ Kopiert!' : '⚠ Fehler');
+    });
+
+    item.querySelector('.btn-history-delete').addEventListener('click', () => {
+      deleteHistoryItem(idx);
     });
 
     list.appendChild(item);
