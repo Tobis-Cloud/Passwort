@@ -35,6 +35,10 @@ const dom = {
   modeRandom:     document.getElementById('mode-random'),
   modePronounce:  document.getElementById('mode-pronounceable'),
   avoidSimilar:   document.getElementById('avoid-similar'),
+  btnMenu:        document.getElementById('btn-menu'),
+  btnCloseMenu:   document.getElementById('btn-close-menu'),
+  overlay:        document.getElementById('settings-overlay'),
+  settingsPanel:  document.getElementById('settings-panel'),
 
   // Sliders + Inputs
   rangeUpper:   document.getElementById('range-upper'),
@@ -102,6 +106,7 @@ function init() {
   renderHistory();
   renderEmails();
   bindEvents();
+  initSwipeGestures();
   preventZoom();
 }
 
@@ -179,6 +184,11 @@ function bindEvents() {
     saveSettings();
   });
 
+  // Mobile Menü-Steuerung
+  dom.btnMenu.addEventListener('click', openMenu);
+  dom.btnCloseMenu.addEventListener('click', closeMenu);
+  dom.overlay.addEventListener('click', closeMenu);
+
   // Sliders & Zahlen-Inputs
   const types = ['upper','lower','numbers','special'];
   types.forEach(type => {
@@ -191,6 +201,7 @@ function bindEvents() {
     });
 
     valEl.addEventListener('focus', function() { this.select(); });
+    valEl.addEventListener('click', function() { this.select(); });
     valEl.addEventListener('change', () => {
       let newVal = parseInt(valEl.value, 10);
       if (isNaN(newVal)) newVal = 0;
@@ -768,6 +779,54 @@ function preventZoom() {
     }
     lastTouch = now;
   }, { passive: false });
+}
+
+/* =============================================
+   MOBILE MENU & GESTURES
+   ============================================= */
+function openMenu() {
+  dom.settingsPanel.classList.add('open');
+  dom.overlay.classList.add('open');
+}
+
+function closeMenu() {
+  dom.settingsPanel.classList.remove('open');
+  dom.overlay.classList.remove('open');
+}
+
+function initSwipeGestures() {
+  let touchStartX = 0;
+  let touchStartY = 0;
+
+  document.addEventListener('touchstart', (e) => {
+    const touch = e.touches[0];
+    touchStartX = touch.clientX;
+    touchStartY = touch.clientY;
+  }, { passive: true });
+
+  document.addEventListener('touchend', (e) => {
+    const touch = e.changedTouches[0];
+    const deltaX = touch.clientX - touchStartX;
+    const deltaY = touch.clientY - touchStartY;
+
+    // Nur horizontale Wischgesten auswerten, wenn sie dominant sind (dx > dy) und eine Mindestdistanz haben (60px)
+    if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 60) {
+      const isPanelOpen = dom.settingsPanel.classList.contains('open');
+
+      if (!isPanelOpen) {
+        // Wischgeste von rechts nach links: Prüfe ob Startpunkt am rechten Rand lag (letzte 40px)
+        const screenWidth = window.innerWidth;
+        if (deltaX < 0 && (screenWidth - touchStartX) < 40) {
+          openMenu();
+        }
+      } else {
+        // Wischgeste von links nach rechts schließt das Menü wieder
+        if (deltaX > 0) {
+          closeMenu();
+        }
+      }
+    }
+  }, { passive: true });
 }
 
 /* =============================================

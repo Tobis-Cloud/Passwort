@@ -31,6 +31,8 @@
 
   <div class="bg-aura"></div>
 
+  <div class="settings-overlay" id="settings-overlay"></div>
+
   <div class="app-wrapper">
     <!-- HEADER -->
     <header class="app-header">
@@ -42,14 +44,27 @@
       </div>
       <h1 class="header-title">PASSKEY</h1>
       <p class="header-sub">SECURE PASSWORD GENERATOR</p>
+      
+      <!-- Hamburger Menu Button (nur Mobile) -->
+      <button class="btn-menu" id="btn-menu" aria-label="Einstellungen öffnen">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="3" y1="12" x2="21" y2="12"></line>
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+      </button>
     </header>
 
     <!-- MAIN CONTENT -->
     <main class="main-content">
 
       <!-- LEFT COLUMN: Settings -->
-      <section class="glass-card settings-panel" aria-label="Passwort-Einstellungen">
-        <h2 class="section-label">EINSTELLUNGEN</h2>
+      <section class="glass-card settings-panel" id="settings-panel" aria-label="Passwort-Einstellungen">
+        <div class="settings-header-mobile">
+          <h2 class="section-label" style="margin-bottom: 0;">EINSTELLUNGEN</h2>
+          <button class="btn-close-menu" id="btn-close-menu" aria-label="Einstellungen schließen">✕</button>
+        </div>
+        <h2 class="section-label settings-label-desktop">EINSTELLUNGEN</h2>
 
         <!-- Länge -->
         <div class="setting-group">

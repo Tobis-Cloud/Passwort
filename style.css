@@ -116,6 +116,51 @@ body {
   text-transform: uppercase;
 }
 
+.btn-menu {
+  display: none;
+  background: transparent;
+  border: 1px solid var(--clr-glass-border);
+  border-radius: 8px;
+  color: var(--clr-text);
+  width: 40px;
+  height: 40px;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.btn-menu:hover {
+  border-color: var(--clr-neon-blue);
+  color: var(--clr-neon-blue);
+  box-shadow: 0 0 8px var(--clr-neon-blue-glow);
+}
+
+.settings-header-mobile {
+  display: none;
+}
+
+.settings-label-desktop {
+  display: block;
+}
+
+.settings-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 999;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.settings-overlay.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
 /* ---------- Main Content Layout ---------- */
 .main-content {
   display: flex;
@@ -1010,9 +1055,63 @@ body {
     overflow-x: hidden;
   }
 
+  .btn-menu {
+    display: flex;
+  }
+
   .settings-panel {
-    width: 100%;
-    flex-shrink: unset;
+    position: fixed;
+    top: 0;
+    right: 0;
+    height: 100dvh;
+    max-height: 100dvh;
+    width: 320px;
+    z-index: 1000;
+    transform: translateX(100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 0;
+    border-left: 1px solid var(--clr-glass-border);
+    border-top: none;
+    border-bottom: none;
+    border-right: none;
+    background: rgba(10, 10, 18, 0.94);
+    box-shadow: -10px 0 30px rgba(0,0,0,0.5);
+    padding: 24px 20px;
+    flex-shrink: 0;
+  }
+
+  .settings-panel.open {
+    transform: translateX(0);
+  }
+
+  .settings-header-mobile {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    padding-bottom: 12px;
+    margin-bottom: 16px;
+  }
+
+  .settings-label-desktop {
+    display: none;
+  }
+
+  .btn-close-menu {
+    background: transparent;
+    border: none;
+    color: var(--clr-text-dim);
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: var(--transition);
+    padding: 4px 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .btn-close-menu:hover {
+    color: #f87171;
   }
 
   .right-column {
