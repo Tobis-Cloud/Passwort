@@ -34,6 +34,7 @@ const dom = {
   lengthSelect:   document.getElementById('length-select'),
   modeRandom:     document.getElementById('mode-random'),
   modePronounce:  document.getElementById('mode-pronounceable'),
+  avoidSimilar:   document.getElementById('avoid-similar'),
 
   // Sliders + Inputs
   rangeUpper:   document.getElementById('range-upper'),
@@ -83,6 +84,7 @@ const dom = {
 let state = {
   length: 8,
   mode: 'random', // 'random' | 'pronounceable'
+  avoidSimilar: false,
   distribution: { upper: 25, lower: 25, numbers: 25, special: 25 },
   currentPassword: '',
   history: [],
@@ -110,6 +112,7 @@ function loadFromStorage() {
       const s = JSON.parse(raw);
       if (s.length)        state.length = s.length;
       if (s.mode)          state.mode = s.mode;
+      if (s.avoidSimilar !== undefined) state.avoidSimilar = s.avoidSimilar;
       if (s.distribution)  state.distribution = { ...state.distribution, ...s.distribution };
     }
   } catch(e) {}
@@ -134,6 +137,8 @@ function applyStateToUI() {
     dom.modeRandom.checked = true;
   }
 
+  dom.avoidSimilar.checked = state.avoidSimilar;
+
   setSliderValues(state.distribution, false);
 }
 
@@ -142,6 +147,7 @@ function saveSettings() {
     localStorage.setItem(STORAGE_KEYS.settings, JSON.stringify({
       length: state.length,
       mode: state.mode,
+      avoidSimilar: state.avoidSimilar,
       distribution: state.distribution
     }));
   } catch(e) {}
@@ -164,6 +170,12 @@ function bindEvents() {
   });
   dom.modePronounce.addEventListener('change', () => {
     state.mode = 'pronounceable';
+    saveSettings();
+  });
+
+  // 0/O vermeiden Checkbox
+  dom.avoidSimilar.addEventListener('change', () => {
+    state.avoidSimilar = dom.avoidSimilar.checked;
     saveSettings();
   });
 
@@ -319,9 +331,18 @@ function pickChar(str) {
  * Wechselt Konsonanten und Vokale ab. Fügt manchmal Doppelkonsonanten ein (z. B. 'll', 'ss').
  */
 function generatePronounceableWord(wordLength) {
-  const singleConsonants = ['b','c','d','f','g','h','j','k','l','m','n','p','r','s','t','v','w','z'];
-  const doubleConsonants = ['ll','ss','tt','pp','rr','nn','mm','ff'];
-  const vowels = ['a','e','i','o','u'];
+  let singleConsonants = ['b','c','d','f','g','h','j','k','l','m','n','p','r','s','t','v','w','z'];
+  let doubleConsonants = ['ll','ss','tt','pp','rr','nn','mm','ff'];
+  let vowels = ['a','e','i','o','u'];
+  
+  if (state.avoidSimilar) {
+    // Vermeide verwechslungsanfällige Zeichen:
+    // 'l' wird entfernt (sieht aus wie 1/I)
+    singleConsonants = singleConsonants.filter(c => c !== 'l');
+    doubleConsonants = doubleConsonants.filter(c => !c.includes('l'));
+    // 'o' (0) und 'i' (I/1) werden aus den Vokalen entfernt
+    vowels = vowels.filter(v => v !== 'o' && v !== 'i');
+  }
   
   let word = "";
   let nextIsVowel = secureRandom(2) === 0;
@@ -360,6 +381,20 @@ function generatePassword() {
   // Zeichen pro Typ berechnen (proportional)
   const counts = computeCounts(length, dist, total);
 
+  // Zeichensätze filtern falls avoidSimilar aktiv ist
+  let charUpper = CHARS.upper;
+  let charLower = CHARS.lower;
+  let charNumbers = CHARS.numbers;
+  let charSpecial = CHARS.special;
+
+  if (state.avoidSimilar) {
+    const removeSet = ['0', 'O', 'o', 'I', 'i', 'l', '1'];
+    charUpper = charUpper.split('').filter(c => !removeSet.includes(c)).join('');
+    charLower = charLower.split('').filter(c => !removeSet.includes(c)).join('');
+    charNumbers = charNumbers.split('').filter(c => !removeSet.includes(c)).join('');
+    charSpecial = charSpecial.split('').filter(c => !removeSet.includes(c)).join('');
+  }
+
   let password = "";
 
   if (state.mode === 'pronounceable') {
@@ -386,8 +421,8 @@ function generatePassword() {
 
     // Zahlen und Sonderzeichen vorbereiten
     let nonLetters = [];
-    for (let i = 0; i < counts.numbers; i++) nonLetters.push(pickChar(CHARS.numbers));
-    for (let i = 0; i < counts.special; i++) nonLetters.push(pickChar(CHARS.special));
+    for (let i = 0; i < counts.numbers; i++) nonLetters.push(pickChar(charNumbers));
+    for (let i = 0; i < counts.special; i++) nonLetters.push(pickChar(charSpecial));
     
     // Zahlen und Sonderzeichen untereinander mischen
     for (let i = nonLetters.length - 1; i > 0; i--) {
@@ -404,13 +439,13 @@ function generatePassword() {
   } else {
     // Zufälliger Modus
     let chars = [];
-    for (let i = 0; i < counts.upper;   i++) chars.push(pickChar(CHARS.upper));
-    for (let i = 0; i < counts.lower;   i++) chars.push(pickChar(CHARS.lower));
-    for (let i = 0; i < counts.numbers; i++) chars.push(pickChar(CHARS.numbers));
-    for (let i = 0; i < counts.special; i++) chars.push(pickChar(CHARS.special));
+    for (let i = 0; i < counts.upper;   i++) chars.push(pickChar(charUpper));
+    for (let i = 0; i < counts.lower;   i++) chars.push(pickChar(charLower));
+    for (let i = 0; i < counts.numbers; i++) chars.push(pickChar(charNumbers));
+    for (let i = 0; i < counts.special; i++) chars.push(pickChar(charSpecial));
 
     // Länge exakt anpassen
-    while (chars.length < length) chars.push(pickChar(CHARS.lower));
+    while (chars.length < length) chars.push(pickChar(charLower));
     chars = chars.slice(0, length);
 
     // Zufällig durchmischen (Fisher-Yates)

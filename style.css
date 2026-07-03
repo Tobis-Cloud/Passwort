@@ -267,6 +267,65 @@ body {
   pointer-events: none;
 }
 
+/* ---------- Checkbox ---------- */
+.checkbox-group {
+  margin-top: 6px;
+}
+
+.checkbox-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.glass-checkbox {
+  display: none;
+}
+
+.checkbox-checkmark {
+  width: 18px;
+  height: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.03);
+  position: relative;
+  transition: var(--transition);
+}
+
+.checkbox-container:hover .checkbox-checkmark {
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.glass-checkbox:checked + .checkbox-checkmark {
+  background: rgba(56, 189, 248, 0.12);
+  border-color: var(--clr-neon-blue);
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.3);
+}
+
+.checkbox-checkmark::after {
+  content: '';
+  position: absolute;
+  display: none;
+  left: 5px;
+  top: 1px;
+  width: 4px;
+  height: 9px;
+  border: solid var(--clr-neon-blue);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.glass-checkbox:checked + .checkbox-checkmark::after {
+  display: block;
+}
+
+.checkbox-label {
+  margin-bottom: 0;
+  cursor: pointer;
+}
+
 /* ---------- Toggle / Radio ---------- */
 .toggle-row {
   display: flex;
