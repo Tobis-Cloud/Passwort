@@ -39,6 +39,7 @@ const dom = {
   btnCloseMenu:   document.getElementById('btn-close-menu'),
   overlay:        document.getElementById('settings-overlay'),
   settingsPanel:  document.getElementById('settings-panel'),
+  btnHeaderGen:   document.getElementById('btn-header-gen'),
 
   // Sliders + Inputs
   rangeUpper:   document.getElementById('range-upper'),
@@ -184,10 +185,11 @@ function bindEvents() {
     saveSettings();
   });
 
-  // Mobile Menü-Steuerung
+  // Mobile Menü-Steuerung & Schnell-Generierung
   dom.btnMenu.addEventListener('click', openMenu);
   dom.btnCloseMenu.addEventListener('click', closeMenu);
   dom.overlay.addEventListener('click', closeMenu);
+  dom.btnHeaderGen.addEventListener('click', generatePassword);
 
   // Sliders & Zahlen-Inputs
   const types = ['upper','lower','numbers','special'];
